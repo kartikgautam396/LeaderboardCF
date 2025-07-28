@@ -174,14 +174,25 @@
         <!-- Controls -->
         <div class="flex justify-between items-center mb-6">
             <h2 class="text-2xl font-semibold text-gray-800" id="leaderboardTitle">Udaigiri Leaderboard</h2>
-            <button 
-                onclick="refreshCurrentLeaderboard()" 
-                id="refreshBtn"
-                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
-            >
-                <span>🔄</span>
-                Refresh All
-            </button>
+            <div class="flex gap-3">
+                <button 
+                    onclick="exportUserData()" 
+                    id="exportBtn"
+                    class="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+                    style="display: none;"
+                >
+                    <span>📥</span>
+                    Export Data
+                </button>
+                <button 
+                    onclick="refreshCurrentLeaderboard()" 
+                    id="refreshBtn"
+                    class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                >
+                    <span>🔄</span>
+                    Refresh All
+                </button>
+            </div>
         </div>
 
         <!-- Leaderboard Display -->
@@ -383,6 +394,7 @@
                 isAdminLoggedIn = true;
                 document.getElementById('adminLoginModal').style.display = 'none';
                 document.getElementById('adminControls').style.display = 'block';
+                document.getElementById('exportBtn').style.display = 'flex';
                 
                 const adminBtn = document.getElementById('adminLoginBtn');
                 adminBtn.innerHTML = '<span>👤</span> Logout';
@@ -400,6 +412,7 @@
         function adminLogout() {
             isAdminLoggedIn = false;
             document.getElementById('adminControls').style.display = 'none';
+            document.getElementById('exportBtn').style.display = 'none';
             document.getElementById('adminId').value = '';
             document.getElementById('adminPassword').value = '';
             
@@ -626,6 +639,34 @@
             
             console.error(`Failed to fetch daily problems for ${username} from all proxies`);
             return 0;
+        }
+        
+        function exportUserData() {
+            if (!isAdminLoggedIn) {
+                showStatus('Admin access required to export data', 'error');
+                return;
+            }
+            
+            const exportData = {
+                leaderboards: leaderboards,
+                contestData: contestData,
+                recentContests: recentContests,
+                exportDate: new Date().toISOString()
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            const url = URL.createObjectURL(dataBlob);
+            
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'codeforces-leaderboard-data.json';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            
+            showStatus('Data exported successfully! Check your downloads.', 'success');
         }
         
         async function addUser() {
@@ -930,5 +971,5 @@
         updateTitles();
         renderLeaderboard();
     </script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96670307b5ca77ba',t:'MTc1MzczMzM0MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'966737d236f647bb',t:'MTc1MzczNTUwNC4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
 </html>
