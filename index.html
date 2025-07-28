@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Udai Codeforces Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        
+        .rating-newbie { color: #808080; }
+        .rating-pupil { color: #008000; }
+        .rating-specialist { color: #03A89E; }
+        .rating-expert { color: #0000FF; }
+        .rating-candidate-master { color: #AA00AA; }
+        .rating-master { color: #FF8C00; }
+        .rating-international-master { color: #FF8C00; }
+        .rating-grandmaster { color: #FF0000; }
+        .rating-international-grandmaster { color: #FF0000; }
+        .rating-legendary-grandmaster { color: #FF0000; }
+        
+        .loading-spinner {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .tab-active {
+            background-color: #3B82F6;
+            color: white;
+        }
+        
+        .tab-inactive {
+            background-color: #F3F4F6;
+            color: #6B7280;
+        }
+        
+        .subtab-active {
+            background-color: #10B981;
+            color: white;
+        }
+        
+        .subtab-inactive {
+            background-color: #E5E7EB;
+            color: #6B7280;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8 max-w-6xl">
+        <!-- Header with Admin Button -->
+        <div class="relative text-center mb-8">
+            <!-- Admin Login Button -->
+            <button 
+                id="adminLoginBtn"
+                onclick="toggleAdminLogin()" 
+                class="absolute top-0 right-0 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2"
+            >
+                <span>🔐</span>
+                Admin
+            </button>
+            
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">🏆 Codeforces Multi-Leaderboard</h1>
+            <p class="text-gray-600">Track competitive programming progress across different categories</p>
+        </div>
+
+        <!-- Admin Login Modal -->
+        <div id="adminLoginModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" style="display: none;">
+            <div class="bg-white rounded-lg shadow-xl p-6 w-96 max-w-90vw">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-semibold text-gray-800">Admin Login</h2>
+                    <button onclick="toggleAdminLogin()" class="text-gray-500 hover:text-gray-700">✕</button>
+                </div>
+                <div class="space-y-4">
+                    <input 
+                        type="text" 
+                        id="adminId" 
+                        placeholder="Admin ID"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <input 
+                        type="password" 
+                        id="adminPassword" 
+                        placeholder="Password"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                    <button 
+                        onclick="adminLogin()" 
+                        class="w-full bg-purple-600 hover:bg-purple-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
+                    >
+                        Login
+                    </button>
+                </div>
+                <p class="text-sm text-gray-600 mt-4 text-center">🔒 Admin access required to modify leaderboards</p>
+            </div>
+        </div>
+
+        <!-- Main Tab Navigation -->
+        <div class="bg-white rounded-lg shadow-lg mb-6">
+            <div class="flex flex-wrap border-b border-gray-200">
+                <button onclick="switchMainTab('udaigiri')" id="maintab-udaigiri" class="px-6 py-3 font-medium rounded-tl-lg tab-active transition-colors duration-200">
+                    🏔️ Udaigiri
+                </button>
+                <button onclick="switchMainTab('year2022')" id="maintab-year2022" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">
+                    📅 2022 Entry
+                </button>
+                <button onclick="switchMainTab('year2023')" id="maintab-year2023" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">
+                    📅 2023 Entry
+                </button>
+                <button onclick="switchMainTab('year2024')" id="maintab-year2024" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">
+                    📅 2024 Entry
+                </button>
+                <button onclick="switchMainTab('year2025')" id="maintab-year2025" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">
+                    📅 2025 Entry
+                </button>
+                <button onclick="switchMainTab('daily')" id="maintab-daily" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">
+                    📊 Daily Problems
+                </button>
+            </div>
+        </div>
+
+        <!-- Sub Tab Navigation (for contest sections) -->
+        <div id="subTabContainer" class="bg-white rounded-lg shadow-lg mb-6">
+            <div class="flex flex-wrap border-b border-gray-200 bg-gray-50">
+                <button onclick="switchSubTab('rating')" id="subtab-rating" class="px-4 py-2 text-sm font-medium subtab-active transition-colors duration-200">
+                    📈 Rating Board
+                </button>
+                <button onclick="switchSubTab('contest1')" id="subtab-contest1" class="px-4 py-2 text-sm font-medium subtab-inactive transition-colors duration-200">
+                    🏆 Latest Contest
+                </button>
+                <button onclick="switchSubTab('contest2')" id="subtab-contest2" class="px-4 py-2 text-sm font-medium subtab-inactive transition-colors duration-200">
+                    🏆 Contest -1
+                </button>
+                <button onclick="switchSubTab('contest3')" id="subtab-contest3" class="px-4 py-2 text-sm font-medium subtab-inactive transition-colors duration-200">
+                    🏆 Contest -2
+                </button>
+            </div>
+        </div>
+
+        <!-- Add User Section (Admin Only) -->
+        <div id="adminControls" class="bg-white rounded-lg shadow-lg p-6 mb-8" style="display: none;">
+            <div class="flex items-center justify-between mb-4">
+                <h2 class="text-xl font-semibold text-gray-800">Add User to <span id="currentLeaderboardName">Udaigiri</span></h2>
+                <span class="text-green-600 text-sm font-medium flex items-center gap-2">
+                    <span>✅</span>
+                    Admin Mode
+                </span>
+            </div>
+            <div class="flex gap-3">
+                <input 
+                    type="text" 
+                    id="usernameInput" 
+                    placeholder="Enter Codeforces username"
+                    class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                <button 
+                    onclick="addUser()" 
+                    class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-colors duration-200"
+                >
+                    Add User
+                </button>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="flex justify-between items-center mb-6">
+            <h2 class="text-2xl font-semibold text-gray-800" id="leaderboardTitle">Udaigiri Leaderboard</h2>
+            <button 
+                onclick="refreshCurrentLeaderboard()" 
+                id="refreshBtn"
+                class="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2 disabled:bg-gray-400 disabled:cursor-not-allowed"
+            >
+                <span>🔄</span>
+                Refresh All
+            </button>
+        </div>
+
+        <!-- Leaderboard Display -->
+        <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+            <div id="leaderboard" class="divide-y divide-gray-200">
+                <div class="p-8 text-center text-gray-500">
+                    <div class="text-4xl mb-4">👥</div>
+                    <p>No users added yet. Add some friends to get started!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Messages -->
+        <div id="statusMessage" class="mt-4 text-center"></div>
+        
+        <!-- Contact Information -->
+        <div class="mt-8 bg-white rounded-lg shadow-lg p-6 text-center">
+            <div class="text-gray-600 mb-2">
+                <span class="text-2xl">📱</span>
+            </div>
+            <p class="text-gray-700 font-medium mb-1">
+                Not added to the leaderboard yet?
+            </p>
+            <p class="text-gray-600">
+                DM <span class="font-semibold text-blue-600">Kartik Sharma</span> on WhatsApp: 
+                <a href="https://wa.me/919306427609" target="_blank" class="text-green-600 hover:text-green-700 font-semibold underline transition-colors duration-200">
+                    +91 9306427609
+                </a>
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Data storage for different leaderboards
+        let leaderboards = {
+            udaigiri: JSON.parse(localStorage.getItem('leaderboard_udaigiri') || '[]'),
+            year2022: JSON.parse(localStorage.getItem('leaderboard_year2022') || '[]'),
+            year2023: JSON.parse(localStorage.getItem('leaderboard_year2023') || '[]'),
+            year2024: JSON.parse(localStorage.getItem('leaderboard_year2024') || '[]'),
+            year2025: JSON.parse(localStorage.getItem('leaderboard_year2025') || '[]'),
+            daily: []
+        };
+        
+        let contestData = JSON.parse(localStorage.getItem('contestData') || '{}');
+        let recentContests = JSON.parse(localStorage.getItem('recentContests') || '[]');
+        
+        let currentMainTab = 'udaigiri';
+        let currentSubTab = 'rating';
+        let isAdminLoggedIn = false;
+        
+        const ADMIN_CREDENTIALS = {
+            id: 'admin',
+            password: 'codeforces123'
+        };
+        
+        const leaderboardTitles = {
+            udaigiri: 'Udaigiri',
+            year2022: '2022 Entry',
+            year2023: '2023 Entry',
+            year2024: '2024 Entry',
+            year2025: '2025 Entry',
+            daily: 'Daily Problems'
+        };
+        
+        function getRatingColor(rating) {
+            if (rating < 1200) return 'rating-newbie';
+            if (rating < 1400) return 'rating-pupil';
+            if (rating < 1600) return 'rating-specialist';
+            if (rating < 1900) return 'rating-expert';
+            if (rating < 2100) return 'rating-candidate-master';
+            if (rating < 2300) return 'rating-master';
+            if (rating < 2400) return 'rating-international-master';
+            if (rating < 2600) return 'rating-grandmaster';
+            if (rating < 3000) return 'rating-international-grandmaster';
+            return 'rating-legendary-grandmaster';
+        }
+        
+        function getRank(rating) {
+            if (rating < 1200) return 'Newbie';
+            if (rating < 1400) return 'Pupil';
+            if (rating < 1600) return 'Specialist';
+            if (rating < 1900) return 'Expert';
+            if (rating < 2100) return 'Candidate Master';
+            if (rating < 2300) return 'Master';
+            if (rating < 2400) return 'International Master';
+            if (rating < 2600) return 'Grandmaster';
+            if (rating < 3000) return 'International Grandmaster';
+            return 'Legendary Grandmaster';
+        }
+        
+        function showStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('statusMessage');
+            const colors = {
+                success: 'text-green-600',
+                error: 'text-red-600',
+                info: 'text-blue-600'
+            };
+            statusDiv.innerHTML = `<p class="${colors[type]} font-medium">${message}</p>`;
+            setTimeout(() => statusDiv.innerHTML = '', 3000);
+        }
+        
+        function switchMainTab(tabName) {
+            // Update active main tab
+            document.querySelectorAll('[id^="maintab-"]').forEach(tab => {
+                tab.className = tab.className.replace('tab-active', 'tab-inactive');
+            });
+            document.getElementById(`maintab-${tabName}`).className = 
+                document.getElementById(`maintab-${tabName}`).className.replace('tab-inactive', 'tab-active');
+            
+            currentMainTab = tabName;
+            currentSubTab = 'rating'; // Reset to rating tab
+            
+            // Show/hide sub tabs based on main tab
+            const subTabContainer = document.getElementById('subTabContainer');
+            if (tabName === 'daily') {
+                subTabContainer.style.display = 'none';
+            } else {
+                subTabContainer.style.display = 'block';
+                // Reset sub tab to rating
+                document.querySelectorAll('[id^="subtab-"]').forEach(tab => {
+                    tab.className = tab.className.replace('subtab-active', 'subtab-inactive');
+                });
+                document.getElementById('subtab-rating').className = 
+                    document.getElementById('subtab-rating').className.replace('subtab-inactive', 'subtab-active');
+            }
+            
+            updateTitles();
+            
+            if (tabName === 'daily') {
+                initializeDailyLeaderboard();
+            }
+            
+            renderLeaderboard();
+        }
+        
+        function switchSubTab(subTabName) {
+            // Update active sub tab
+            document.querySelectorAll('[id^="subtab-"]').forEach(tab => {
+                tab.className = tab.className.replace('subtab-active', 'subtab-inactive');
+            });
+            document.getElementById(`subtab-${subTabName}`).className = 
+                document.getElementById(`subtab-${subTabName}`).className.replace('subtab-inactive', 'subtab-active');
+            
+            currentSubTab = subTabName;
+            updateTitles();
+            renderLeaderboard();
+        }
+        
+        function updateTitles() {
+            const mainTitle = leaderboardTitles[currentMainTab];
+            let subTitle = '';
+            
+            if (currentMainTab !== 'daily') {
+                if (currentSubTab === 'rating') {
+                    subTitle = 'Rating Board';
+                } else {
+                    const contestIndex = parseInt(currentSubTab.replace('contest', '')) - 1;
+                    if (recentContests[contestIndex]) {
+                        subTitle = `Contest: ${recentContests[contestIndex].name}`;
+                    } else {
+                        subTitle = `Contest ${currentSubTab.replace('contest', '')}`;
+                    }
+                }
+            } else {
+                subTitle = 'Leaderboard';
+            }
+            
+            document.getElementById('leaderboardTitle').textContent = `${mainTitle} ${subTitle}`;
+            document.getElementById('currentLeaderboardName').textContent = mainTitle;
+        }
+        
+        function initializeDailyLeaderboard() {
+            const allUsers = new Map();
+            
+            ['udaigiri', 'year2022', 'year2023', 'year2024', 'year2025'].forEach(boardName => {
+                leaderboards[boardName].forEach(user => {
+                    if (!allUsers.has(user.username.toLowerCase())) {
+                        allUsers.set(user.username.toLowerCase(), {
+                            ...user,
+                            dailyProblems: 0
+                        });
+                    }
+                });
+            });
+            
+            leaderboards.daily = Array.from(allUsers.values());
+        }
+        
+        function toggleAdminLogin() {
+            const modal = document.getElementById('adminLoginModal');
+            modal.style.display = modal.style.display === 'none' ? 'flex' : 'none';
+        }
+        
+        function adminLogin() {
+            const adminId = document.getElementById('adminId').value.trim();
+            const adminPassword = document.getElementById('adminPassword').value.trim();
+            
+            if (adminId === ADMIN_CREDENTIALS.id && adminPassword === ADMIN_CREDENTIALS.password) {
+                isAdminLoggedIn = true;
+                document.getElementById('adminLoginModal').style.display = 'none';
+                document.getElementById('adminControls').style.display = 'block';
+                
+                const adminBtn = document.getElementById('adminLoginBtn');
+                adminBtn.innerHTML = '<span>👤</span> Logout';
+                adminBtn.onclick = adminLogout;
+                adminBtn.className = 'absolute top-0 right-0 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2';
+                
+                renderLeaderboard();
+                showStatus('Admin login successful! You now have full access.', 'success');
+            } else {
+                showStatus('Invalid admin credentials. Please try again.', 'error');
+                document.getElementById('adminPassword').value = '';
+            }
+        }
+        
+        function adminLogout() {
+            isAdminLoggedIn = false;
+            document.getElementById('adminControls').style.display = 'none';
+            document.getElementById('adminId').value = '';
+            document.getElementById('adminPassword').value = '';
+            
+            const adminBtn = document.getElementById('adminLoginBtn');
+            adminBtn.innerHTML = '<span>🔐</span> Admin';
+            adminBtn.onclick = toggleAdminLogin;
+            adminBtn.className = 'absolute top-0 right-0 bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg font-medium transition-colors duration-200 flex items-center gap-2';
+            
+            renderLeaderboard();
+            showStatus('Logged out successfully. Now in read-only mode.', 'info');
+        }
+        
+        async function fetchUserData(username) {
+            const proxies = [
+                'https://api.allorigins.win/get?url=',
+                'https://corsproxy.io/?',
+                'https://api.codetabs.com/v1/proxy?quest='
+            ];
+            
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    const proxyUrl = proxies[i];
+                    const apiUrl = `https://codeforces.com/api/user.info?handles=${username}`;
+                    
+                    let response;
+                    if (proxyUrl.includes('allorigins')) {
+                        response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            const proxyData = await response.json();
+                            const data = JSON.parse(proxyData.contents);
+                            
+                            if (data.status === 'OK' && data.result.length > 0) {
+                                const user = data.result[0];
+                                return {
+                                    username: user.handle,
+                                    rating: user.rating || 0,
+                                    maxRating: user.maxRating || 0,
+                                    rank: user.rank || 'Unrated',
+                                    maxRank: user.maxRank || 'Unrated',
+                                    avatar: user.avatar || '',
+                                    lastOnline: user.lastOnlineTimeSeconds
+                                };
+                            }
+                        }
+                    } else {
+                        response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            const data = await response.json();
+                            
+                            if (data.status === 'OK' && data.result.length > 0) {
+                                const user = data.result[0];
+                                return {
+                                    username: user.handle,
+                                    rating: user.rating || 0,
+                                    maxRating: user.maxRating || 0,
+                                    rank: user.rank || 'Unrated',
+                                    maxRank: user.maxRank || 'Unrated',
+                                    avatar: user.avatar || '',
+                                    lastOnline: user.lastOnlineTimeSeconds
+                                };
+                            }
+                        }
+                    }
+                } catch (error) {
+                    console.log(`Proxy ${i + 1} failed, trying next...`);
+                    if (i === proxies.length - 1) {
+                        throw new Error(`Failed to fetch data for ${username}. All proxy services are unavailable. Please try again later.`);
+                    }
+                }
+            }
+            
+            throw new Error(`User ${username} not found or invalid username`);
+        }
+        
+        async function fetchRecentContests() {
+            const proxies = [
+                'https://api.allorigins.win/get?url=',
+                'https://corsproxy.io/?',
+                'https://api.codetabs.com/v1/proxy?quest='
+            ];
+            
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    const proxyUrl = proxies[i];
+                    const apiUrl = 'https://codeforces.com/api/contest.list?gym=false';
+                    
+                    let response;
+                    let data;
+                    
+                    if (proxyUrl.includes('allorigins')) {
+                        response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            const proxyData = await response.json();
+                            data = JSON.parse(proxyData.contents);
+                        }
+                    } else {
+                        response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            data = await response.json();
+                        }
+                    }
+                    
+                    if (data && data.status === 'OK') {
+                        const finishedContests = data.result
+                            .filter(contest => contest.phase === 'FINISHED')
+                            .sort((a, b) => b.startTimeSeconds - a.startTimeSeconds)
+                            .slice(0, 3);
+                        
+                        recentContests = finishedContests.map(contest => ({
+                            id: contest.id,
+                            name: contest.name,
+                            startTime: contest.startTimeSeconds
+                        }));
+                        
+                        localStorage.setItem('recentContests', JSON.stringify(recentContests));
+                        return recentContests;
+                    }
+                } catch (error) {
+                    console.log(`Contest proxy ${i + 1} failed, trying next...`);
+                }
+            }
+            
+            console.error('Failed to fetch contests from all proxies');
+            return recentContests; // Return cached data
+        }
+        
+        async function fetchUserContestData(username, contestId) {
+            const proxies = [
+                'https://api.allorigins.win/get?url=',
+                'https://corsproxy.io/?',
+                'https://api.codetabs.com/v1/proxy?quest='
+            ];
+            
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    const proxyUrl = proxies[i];
+                    const apiUrl = `https://codeforces.com/api/contest.standings?contestId=${contestId}&handles=${username}`;
+                    
+                    let response;
+                    let data;
+                    
+                    if (proxyUrl.includes('allorigins')) {
+                        response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            const proxyData = await response.json();
+                            data = JSON.parse(proxyData.contents);
+                        }
+                    } else {
+                        response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            data = await response.json();
+                        }
+                    }
+                    
+                    if (data && data.status === 'OK' && data.result.rows.length > 0) {
+                        const row = data.result.rows[0];
+                        return {
+                            rank: row.rank,
+                            oldRating: row.party.members[0].oldRating || 0,
+                            newRating: row.party.members[0].newRating || 0,
+                            ratingChange: (row.party.members[0].newRating || 0) - (row.party.members[0].oldRating || 0)
+                        };
+                    }
+                } catch (error) {
+                    console.log(`Contest standings proxy ${i + 1} failed for ${username}, trying next...`);
+                }
+            }
+            
+            console.error(`Failed to fetch contest data for ${username} in contest ${contestId} from all proxies`);
+            return null;
+        }
+        
+        async function fetchDailyProblems(username) {
+            const proxies = [
+                'https://api.allorigins.win/get?url=',
+                'https://corsproxy.io/?',
+                'https://api.codetabs.com/v1/proxy?quest='
+            ];
+            
+            for (let i = 0; i < proxies.length; i++) {
+                try {
+                    const proxyUrl = proxies[i];
+                    const apiUrl = `https://codeforces.com/api/user.status?handle=${username}&from=1&count=100`;
+                    
+                    let response;
+                    let data;
+                    
+                    if (proxyUrl.includes('allorigins')) {
+                        response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            const proxyData = await response.json();
+                            data = JSON.parse(proxyData.contents);
+                        }
+                    } else {
+                        response = await fetch(proxyUrl + encodeURIComponent(apiUrl));
+                        if (response.ok) {
+                            data = await response.json();
+                        }
+                    }
+                    
+                    if (data && data.status === 'OK') {
+                        const today = new Date();
+                        today.setHours(0, 0, 0, 0);
+                        const todayTimestamp = Math.floor(today.getTime() / 1000);
+                        
+                        const todaySubmissions = data.result.filter(submission => 
+                            submission.creationTimeSeconds >= todayTimestamp && 
+                            submission.verdict === 'OK'
+                        );
+                        
+                        const uniqueProblems = new Set();
+                        todaySubmissions.forEach(submission => {
+                            if (submission.problem) {
+                                uniqueProblems.add(`${submission.problem.contestId}-${submission.problem.index}`);
+                            }
+                        });
+                        
+                        return uniqueProblems.size;
+                    }
+                } catch (error) {
+                    console.log(`Daily problems proxy ${i + 1} failed for ${username}, trying next...`);
+                }
+            }
+            
+            console.error(`Failed to fetch daily problems for ${username} from all proxies`);
+            return 0;
+        }
+        
+        async function addUser() {
+            if (!isAdminLoggedIn) {
+                showStatus('Admin access required to add users', 'error');
+                return;
+            }
+            
+            const input = document.getElementById('usernameInput');
+            const username = input.value.trim();
+            
+            if (!username) {
+                showStatus('Please enter a username', 'error');
+                return;
+            }
+            
+            if (leaderboards[currentMainTab].find(u => u.username.toLowerCase() === username.toLowerCase())) {
+                showStatus('User already exists in this leaderboard', 'error');
+                return;
+            }
+            
+            showStatus('Adding user...', 'info');
+            
+            try {
+                const userData = await fetchUserData(username);
+                
+                if (currentMainTab === 'daily') {
+                    userData.dailyProblems = await fetchDailyProblems(username);
+                }
+                
+                leaderboards[currentMainTab].push(userData);
+                localStorage.setItem(`leaderboard_${currentMainTab}`, JSON.stringify(leaderboards[currentMainTab]));
+                input.value = '';
+                renderLeaderboard();
+                showStatus(`Successfully added ${username} to ${leaderboardTitles[currentMainTab]}!`, 'success');
+            } catch (error) {
+                showStatus(error.message, 'error');
+            }
+        }
+        
+        async function refreshCurrentLeaderboard() {
+            let users;
+            
+            if (currentMainTab === 'daily') {
+                users = leaderboards.daily;
+            } else if (currentSubTab === 'rating') {
+                users = leaderboards[currentMainTab];
+            } else {
+                // For contest tabs, refresh contest data
+                await refreshContestData();
+                return;
+            }
+            
+            if (users.length === 0) {
+                showStatus('No users to refresh', 'error');
+                return;
+            }
+            
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.innerHTML = '<div class="loading-spinner"></div> Refreshing...';
+            refreshBtn.disabled = true;
+            
+            showStatus('Refreshing leaderboard...', 'info');
+            
+            try {
+                const updatedUsers = [];
+                for (const user of users) {
+                    try {
+                        const updatedData = await fetchUserData(user.username);
+                        
+                        if (currentMainTab === 'daily') {
+                            updatedData.dailyProblems = await fetchDailyProblems(user.username);
+                        }
+                        
+                        updatedUsers.push(updatedData);
+                    } catch (error) {
+                        updatedUsers.push(user);
+                        console.error(`Failed to update ${user.username}:`, error);
+                    }
+                }
+                
+                if (currentMainTab === 'daily') {
+                    leaderboards.daily = updatedUsers;
+                } else {
+                    leaderboards[currentMainTab] = updatedUsers;
+                    localStorage.setItem(`leaderboard_${currentMainTab}`, JSON.stringify(updatedUsers));
+                }
+                
+                renderLeaderboard();
+                showStatus('Leaderboard refreshed successfully!', 'success');
+            } catch (error) {
+                showStatus('Error refreshing leaderboard', 'error');
+            } finally {
+                refreshBtn.innerHTML = '<span>🔄</span> Refresh All';
+                refreshBtn.disabled = false;
+            }
+        }
+        
+        async function refreshContestData() {
+            const refreshBtn = document.getElementById('refreshBtn');
+            refreshBtn.innerHTML = '<div class="loading-spinner"></div> Refreshing...';
+            refreshBtn.disabled = true;
+            
+            showStatus('Refreshing contest data...', 'info');
+            
+            try {
+                // Fetch recent contests first
+                await fetchRecentContests();
+                
+                const users = leaderboards[currentMainTab];
+                const contestIndex = parseInt(currentSubTab.replace('contest', '')) - 1;
+                
+                if (recentContests[contestIndex]) {
+                    const contestId = recentContests[contestIndex].id;
+                    
+                    for (const user of users) {
+                        try {
+                            const contestResult = await fetchUserContestData(user.username, contestId);
+                            if (!contestData[user.username]) {
+                                contestData[user.username] = {};
+                            }
+                            contestData[user.username][contestId] = contestResult;
+                        } catch (error) {
+                            console.error(`Failed to fetch contest data for ${user.username}:`, error);
+                        }
+                    }
+                    
+                    localStorage.setItem('contestData', JSON.stringify(contestData));
+                }
+                
+                renderLeaderboard();
+                showStatus('Contest data refreshed successfully!', 'success');
+            } catch (error) {
+                showStatus('Error refreshing contest data', 'error');
+            } finally {
+                refreshBtn.innerHTML = '<span>🔄</span> Refresh All';
+                refreshBtn.disabled = false;
+            }
+        }
+        
+        function removeUser(username) {
+            if (!isAdminLoggedIn) {
+                showStatus('Admin access required to remove users', 'error');
+                return;
+            }
+            
+            leaderboards[currentMainTab] = leaderboards[currentMainTab].filter(u => u.username !== username);
+            localStorage.setItem(`leaderboard_${currentMainTab}`, JSON.stringify(leaderboards[currentMainTab]));
+            renderLeaderboard();
+            showStatus(`Removed ${username} from ${leaderboardTitles[currentMainTab]}`, 'success');
+        }
+        
+        function renderLeaderboard() {
+            const leaderboard = document.getElementById('leaderboard');
+            let users;
+            
+            if (currentMainTab === 'daily') {
+                users = leaderboards.daily;
+            } else if (currentSubTab === 'rating') {
+                users = leaderboards[currentMainTab];
+            } else {
+                // Contest leaderboard
+                users = leaderboards[currentMainTab];
+            }
+            
+            if (users.length === 0) {
+                leaderboard.innerHTML = `
+                    <div class="p-8 text-center text-gray-500">
+                        <div class="text-4xl mb-4">👥</div>
+                        <p>No users added yet. Add some friends to get started!</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Sort users based on current view
+            let sortedUsers;
+            if (currentMainTab === 'daily') {
+                sortedUsers = [...users].sort((a, b) => (b.dailyProblems || 0) - (a.dailyProblems || 0));
+            } else if (currentSubTab === 'rating') {
+                sortedUsers = [...users].sort((a, b) => (b.rating || 0) - (a.rating || 0));
+            } else {
+                // Contest sorting
+                const contestIndex = parseInt(currentSubTab.replace('contest', '')) - 1;
+                if (recentContests[contestIndex]) {
+                    const contestId = recentContests[contestIndex].id;
+                    sortedUsers = [...users].sort((a, b) => {
+                        const aData = contestData[a.username]?.[contestId];
+                        const bData = contestData[b.username]?.[contestId];
+                        
+                        if (!aData && !bData) return 0;
+                        if (!aData) return 1;
+                        if (!bData) return -1;
+                        
+                        return aData.rank - bData.rank;
+                    });
+                } else {
+                    sortedUsers = [...users];
+                }
+            }
+            
+            leaderboard.innerHTML = sortedUsers.map((user, index) => {
+                let displayContent = '';
+                
+                if (currentMainTab === 'daily') {
+                    displayContent = `
+                        <div class="font-bold text-lg text-blue-600">${user.dailyProblems || 0}</div>
+                        <div class="text-sm text-gray-500">Problems Today</div>
+                    `;
+                } else if (currentSubTab === 'rating') {
+                    displayContent = `
+                        <div class="font-bold text-lg ${getRatingColor(user.rating || 0)}">${user.rating || 'Unrated'}</div>
+                        <div class="text-sm text-gray-500">Max: ${user.maxRating || 'N/A'}</div>
+                    `;
+                } else {
+                    // Contest display
+                    const contestIndex = parseInt(currentSubTab.replace('contest', '')) - 1;
+                    if (recentContests[contestIndex]) {
+                        const contestId = recentContests[contestIndex].id;
+                        const contestResult = contestData[user.username]?.[contestId];
+                        
+                        if (contestResult) {
+                            const ratingChangeColor = contestResult.ratingChange > 0 ? 'text-green-600' : 
+                                                    contestResult.ratingChange < 0 ? 'text-red-600' : 'text-gray-600';
+                            const ratingChangeSign = contestResult.ratingChange > 0 ? '+' : '';
+                            
+                            displayContent = `
+                                <div class="font-bold text-lg text-blue-600">Rank ${contestResult.rank}</div>
+                                <div class="text-sm ${ratingChangeColor}">${ratingChangeSign}${contestResult.ratingChange}</div>
+                            `;
+                        } else {
+                            displayContent = `
+                                <div class="font-bold text-lg text-gray-400">Not Participated</div>
+                                <div class="text-sm text-gray-500">-</div>
+                            `;
+                        }
+                    }
+                }
+                
+                return `
+                    <div class="p-4 hover:bg-gray-50 transition-colors duration-200">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-4">
+                                <div class="text-2xl font-bold text-gray-400 w-8">
+                                    ${index + 1}
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    ${user.avatar ? `<img src="${user.avatar}" alt="${user.username}" class="w-10 h-10 rounded-full">` : '<div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center text-gray-600 font-semibold">' + user.username.charAt(0).toUpperCase() + '</div>'}
+                                    <div>
+                                        <div class="font-semibold ${getRatingColor(user.rating || 0)}">${user.username}</div>
+                                        <div class="text-sm text-gray-500">${getRank(user.rating || 0)}</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4">
+                                <div class="text-right">
+                                    ${displayContent}
+                                </div>
+                                <button 
+                                    onclick="removeUser('${user.username}')"
+                                    class="text-red-500 hover:text-red-700 p-2 rounded-lg hover:bg-red-50 transition-colors duration-200 disabled:text-gray-400 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                                    title="Remove user"
+                                    ${!isAdminLoggedIn ? 'disabled' : ''}
+                                >
+                                    ✕
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // Event listeners
+        document.addEventListener('DOMContentLoaded', function() {
+            document.getElementById('adminPassword').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') adminLogin();
+            });
+            
+            document.getElementById('adminId').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') adminLogin();
+            });
+            
+            document.getElementById('adminLoginModal').addEventListener('click', function(e) {
+                if (e.target === this) toggleAdminLogin();
+            });
+            
+            // Initialize recent contests on load
+            fetchRecentContests().then(() => {
+                updateTitles();
+            });
+        });
+        
+        document.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && document.getElementById('usernameInput') && 
+                document.getElementById('adminControls').style.display !== 'none') {
+                addUser();
+            }
+        });
+        
+        // Initial render
+        updateTitles();
+        renderLeaderboard();
+    </script>
+<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'96670307b5ca77ba',t:'MTc1MzczMzM0MS4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
