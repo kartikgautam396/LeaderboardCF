@@ -54,7 +54,6 @@
                 <button onclick="switchMainTab('year2023')" id="maintab-year2023" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">📅 2023 Entry</button>
                 <button onclick="switchMainTab('year2024')" id="maintab-year2024" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">📅 2024 Entry</button>
                 <button onclick="switchMainTab('year2025')" id="maintab-year2025" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">📅 2025 Entry</button>
-                <button onclick="switchMainTab('daily')" id="maintab-daily" class="px-6 py-3 font-medium tab-inactive transition-colors duration-200">📊 Daily</button>
             </div>
         </div>
 
@@ -87,19 +86,35 @@
         <div id="statusMessage" class="mt-4 text-center"></div>
         
         <div class="mt-8 bg-white rounded-lg shadow-lg p-6 text-center">
-            <p class="text-gray-700 font-medium mb-1">Not on the leaderboard?</p>
+            <div class="text-gray-600 mb-2">
+                <span class="text-2xl">📱</span>
+            </div>
+            
+            <h3 class="text-lg font-semibold text-gray-800 mb-3">Join the Community</h3>
+            
+            <a href="https://chat.whatsapp.com/HUH6587w94NFB0j5dj1TS8" target="_blank" class="inline-flex items-center gap-2 bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-full font-medium transition-colors duration-200 mb-6 shadow-md hover:shadow-lg transform hover:-translate-y-0.5">
+                <span>👥</span> Join WhatsApp Group
+            </a>
 
-            <p className="text-gray-600">
-             DM <span class="font-semibold text-blue-600">Kartik Sharma</span> on WhatsApp: 
-                <a href="https://wa.me/919306427609" target="_blank" class="text-green-600 hover:text-green-700 font-semibold underline transition-colors duration-200">
-                    +91 9306427609
-                </a>
-                <br>
-            <span class="font-semibold text-blue-600">Yashdeep Singh</span> on WhatsApp: 
-                <a href="https://wa.me/919999766658" target="_blank" class="text-green-600 hover:text-green-700 font-semibold underline transition-colors duration-200">
-                    +91 9999766658
-                </a>
-          </p>
+            <div class="border-t border-gray-100 pt-6">
+                <p class="text-gray-700 font-medium mb-2">
+                    Not added to the leaderboard yet?
+                </p>
+                <div class="text-gray-600 space-y-1">
+                    <p>
+                        DM <span class="font-semibold text-blue-600">Kartik Sharma</span>: 
+                        <a href="https://wa.me/919306427609" target="_blank" class="text-green-600 hover:text-green-700 font-semibold underline transition-colors duration-200">
+                            +91 9306427609
+                        </a>
+                    </p>
+                    <p>
+                        DM <span class="font-semibold text-blue-600">Yashdeep Singh</span>: 
+                        <a href="https://wa.me/91999976668" target="_blank" class="text-green-600 hover:text-green-700 font-semibold underline transition-colors duration-200">
+                            +91 99997 6668
+                        </a>
+                    </p>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -110,7 +125,7 @@
         
         // Data Structure
         let leaderboards = {
-            udaigiri: [], year2022: [], year2023: [], year2024: [], year2025: [], daily: []
+            udaigiri: [], year2022: [], year2023: [], year2024: [], year2025: []
         };
         
         let contestData = JSON.parse(localStorage.getItem('contestData') || '{}');
@@ -121,33 +136,44 @@
 
         const leaderboardTitles = {
             udaigiri: 'Udaigiri (All)', year2022: '2022 Entry', year2023: '2023 Entry', 
-            year2024: '2024 Entry', year2025: '2025 Entry', daily: 'Daily Problems'
+            year2024: '2024 Entry', year2025: '2025 Entry'
         };
 
         // --- CORE FUNCTIONS ---
 
-        // 1. Fetch Users from Google Sheet (MODIFIED LOGIC)
+        // 1. Fetch Users from Google Sheet (Fixed for Safari)
         async function fetchSheetData() {
             try {
                 // Reset leaderboards
                 Object.keys(leaderboards).forEach(k => leaderboards[k] = []);
                 
-                const response = await fetch(SHEET_CSV_URL);
+                // We use 'allorigins' proxy to bypass Safari CORS/Redirect issues
+                // 'raw?url=' ensures we get the CSV text back directly
+                const PROXY_URL = "https://api.allorigins.win/raw?url=";
+                const targetUrl = PROXY_URL + encodeURIComponent(SHEET_CSV_URL);
+                
+                const response = await fetch(targetUrl);
+                
+                if (!response.ok) throw new Error("Network response was not ok");
+                
                 const text = await response.text();
                 
                 // Parse CSV (Assumes Row 1 is header, Col 0 is Handle, Col 1 is Category)
                 const rows = text.split('\n').map(row => row.split(','));
                 
                 const allHandles = new Set();
-                const processedForUdaigiri = new Set(); // To prevent duplicates in master list
+                const processedForUdaigiri = new Set(); 
 
                 // Start from index 1 to skip header
                 for (let i = 1; i < rows.length; i++) {
+                    // Safety check: ensure row has data
+                    if (rows[i].length < 1) continue;
+                    
                     const handle = rows[i][0]?.trim();
-                    const category = rows[i][1]?.trim().toLowerCase();
+                    // Handle cases where category might be missing/undefined
+                    const category = rows[i][1] ? rows[i][1].trim().toLowerCase() : '';
                     
                     if (handle) {
-                        // Create basic user object
                         const userObj = { 
                             username: handle, 
                             rating: 0, 
@@ -156,14 +182,14 @@
                             avatar: '' 
                         };
 
-                        // 1. Add to the specific category from the sheet (e.g., year2024)
+                        // 1. Add to specific category
                         if (category && leaderboards[category]) {
-                            leaderboards[category].push({ ...userObj }); // Push a copy
+                            leaderboards[category].push({ ...userObj });
                         }
 
-                        // 2. AUTOMATICALLY add to 'udaigiri' (Master List)
+                        // 2. Add to Udaigiri (Master List)
                         if (!processedForUdaigiri.has(handle.toLowerCase())) {
-                            leaderboards['udaigiri'].push({ ...userObj }); // Push a copy
+                            leaderboards['udaigiri'].push({ ...userObj });
                             processedForUdaigiri.add(handle.toLowerCase());
                         }
 
@@ -172,9 +198,38 @@
                 }
                 return Array.from(allHandles);
             } catch (error) {
-                showStatus("Failed to load Google Sheet. Check URL.", "error");
-                console.error(error);
-                return [];
+                showStatus("Failed to load Google Sheet. Trying alternate method...", "error");
+                console.error("Primary fetch failed, checking direct access...", error);
+                
+                // Fallback: Try direct fetch if proxy fails (rare, but good for backup)
+                try {
+                    const response = await fetch(SHEET_CSV_URL);
+                    const text = await response.text();
+                    
+                    // Basic parsing for fallback (repeating logic briefly for robustness)
+                    const rows = text.split('\n').map(row => row.split(','));
+                    const allHandles = new Set();
+                    const processedForUdaigiri = new Set();
+                    
+                    for (let i = 1; i < rows.length; i++) {
+                        if (rows[i].length < 1) continue;
+                        const handle = rows[i][0]?.trim();
+                        const category = rows[i][1] ? rows[i][1].trim().toLowerCase() : '';
+                        if (handle) {
+                            const userObj = { username: handle, rating: 0, maxRating: 0, rank: 'unrated', avatar: '' };
+                            if (category && leaderboards[category]) leaderboards[category].push({ ...userObj });
+                            if (!processedForUdaigiri.has(handle.toLowerCase())) {
+                                leaderboards['udaigiri'].push({ ...userObj });
+                                processedForUdaigiri.add(handle.toLowerCase());
+                            }
+                            allHandles.add(handle);
+                        }
+                    }
+                    return Array.from(allHandles);
+                } catch (e) {
+                    console.error("Direct fetch also failed", e);
+                    return [];
+                }
             }
         }
 
@@ -236,7 +291,6 @@
                 showStatus(`Found ${handles.length} users. Fetching Codeforces data...`, "info");
                 await updateCodeforcesData(handles);
                 
-                initializeDailyLeaderboard();
                 await fetchRecentContests();
                 
                 showStatus("Data updated successfully!", "success");
@@ -282,13 +336,10 @@
             currentMainTab = tabName;
             currentSubTab = 'rating'; 
             
-            const subTabContainer = document.getElementById('subTabContainer');
-            if (tabName === 'daily') {
-                subTabContainer.style.display = 'none';
-            } else {
-                subTabContainer.style.display = 'block';
-                switchSubTab('rating'); 
-            }
+            // SubTab Container is always visible now as Daily is gone
+            document.getElementById('subTabContainer').style.display = 'block';
+            switchSubTab('rating'); 
+            
             updateTitles();
             renderLeaderboard();
         }
@@ -313,33 +364,18 @@
             const mainTitle = leaderboardTitles[currentMainTab];
             let subTitle = '';
             
-            if (currentMainTab !== 'daily') {
-                if (currentSubTab === 'rating') {
-                    subTitle = 'Rating Board';
-                } else {
-                    const contestIndex = parseInt(currentSubTab.replace('contest', '')) - 1;
-                    if (recentContests[contestIndex]) {
-                        subTitle = `Contest: ${recentContests[contestIndex].name}`;
-                    } else {
-                        subTitle = `Contest ${currentSubTab.replace('contest', '')}`;
-                    }
-                }
+            if (currentSubTab === 'rating') {
+                subTitle = 'Rating Board';
             } else {
-                subTitle = 'Leaderboard';
+                const contestIndex = parseInt(currentSubTab.replace('contest', '')) - 1;
+                if (recentContests[contestIndex]) {
+                    subTitle = `Contest: ${recentContests[contestIndex].name}`;
+                } else {
+                    subTitle = `Contest ${currentSubTab.replace('contest', '')}`;
+                }
             }
-            document.getElementById('leaderboardTitle').textContent = `${mainTitle} ${subTitle}`;
-        }
 
-        function initializeDailyLeaderboard() {
-            const allUsers = new Map();
-            Object.keys(leaderboards).forEach(boardName => {
-                leaderboards[boardName].forEach(user => {
-                    if (!allUsers.has(user.username.toLowerCase())) {
-                        allUsers.set(user.username.toLowerCase(), { ...user, dailyProblems: 0 });
-                    }
-                });
-            });
-            leaderboards.daily = Array.from(allUsers.values());
+            document.getElementById('leaderboardTitle').textContent = `${mainTitle} ${subTitle}`;
         }
 
         async function fetchRecentContests() {
@@ -441,7 +477,6 @@
                         const cData = contestData[user.username]?.[cid];
                         
                         if (cData && cData.participated) {
-                            // CHANGE MADE HERE: Format changed to "Rank XXX"
                             rightSideContent = `
                                 <div class="font-bold text-lg text-blue-600">Rank ${cData.rank}</div>
                             `;
